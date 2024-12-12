@@ -7,6 +7,8 @@ public class FarmGameManager : MonoBehaviour
     public TMP_Text cowCountText;
     public TMP_Text chickenCountText;
     public TMP_Text moneyText;
+    public TMP_Text dayCountdownText;
+    public TMP_Text achievementPopupText;
 
     [Header("Prices")]
     public int cowPrice = 100;
@@ -16,11 +18,18 @@ public class FarmGameManager : MonoBehaviour
     public float cowHappiness = 200f;
     public float chickenHappiness = 200f;
 
+    [Header("Daily Clock")]
+    public float dayDurationInSeconds = 60f; // Adjustable in Inspector
+    private float currentDayTime = 0f;
+
+    [Header("Animal Feeding Costs")]
+    public int cowFoodCost = 10;
+    public int chickenFoodCost = 5;
+
     [Header("Bulk Buying")]
     public GameObject bulkButtonsRow;
-    public float buttonPressWindow = 5f;
+    public float buttonPressWindow = 5f; // Time to reach threshold
     public int buttonPressThreshold = 20;
-    public TMP_Text achievementPopupText;
 
     private int cows = 0;
     private int chickens = 0;
@@ -41,18 +50,70 @@ public class FarmGameManager : MonoBehaviour
         UpdateUI();
         bulkButtonsRow.SetActive(false); // Hide the bulk buttons initially
         achievementPopupText.gameObject.SetActive(false); // Hide achievement popup
+        currentDayTime = dayDurationInSeconds; // Start the clock
     }
 
     void Update()
     {
+        HandleDailyClock();
         HandleReproduction();
         HandleButtonPressTimer();
         HandleAchievementPopup();
     }
 
+    private void HandleDailyClock()
+    {
+        if (currentDayTime > 0)
+        {
+            currentDayTime -= Time.deltaTime;
+            UpdateDayCountdownUI();
+        }
+        else
+        {
+            EndDay();
+            currentDayTime = dayDurationInSeconds; // Reset the clock for a new day
+        }
+    }
+
+    private void UpdateDayCountdownUI()
+    {
+        // Convert remaining time to hours and minutes
+        int hours = Mathf.FloorToInt((currentDayTime / dayDurationInSeconds) * 24);
+        dayCountdownText.text = $"Day Time: {hours:00}:00";
+    }
+
+    private void EndDay()
+    {
+        int totalFoodCost = (cows * cowFoodCost) + (chickens * chickenFoodCost);
+
+        if (money >= totalFoodCost)
+        {
+            money -= totalFoodCost; // Deduct food cost
+        }
+        else
+        {
+            // Not enough money: remove animals
+            int remainingMoney = money;
+
+            // Calculate how many chickens can be fed
+            int chickensThatCanBeFed = remainingMoney / chickenFoodCost;
+            remainingMoney -= chickensThatCanBeFed * chickenFoodCost;
+            chickens = Mathf.Max(0, chickens - (chickens - chickensThatCanBeFed));
+
+            // Calculate how many cows can be fed
+            int cowsThatCanBeFed = remainingMoney / cowFoodCost;
+            remainingMoney -= cowsThatCanBeFed * cowFoodCost;
+            cows = Mathf.Max(0, cows - (cows - cowsThatCanBeFed));
+
+            // Set money to zero after feeding as much as possible
+            money = 0;
+        }
+
+        UpdateUI();
+    }
+
     private void HandleReproduction()
     {
-        // Reproduction logic for cows
         if (cows > 0)
         {
             cowReproductionTimer += Time.deltaTime;
@@ -66,7 +127,6 @@ public class FarmGameManager : MonoBehaviour
             }
         }
 
-        // Reproduction logic for chickens
         if (chickens > 0)
         {
             chickenReproductionTimer += Time.deltaTime;
@@ -100,7 +160,7 @@ public class FarmGameManager : MonoBehaviour
         if (isAchievementPopupVisible)
         {
             achievementPopupTimer += Time.deltaTime;
-            if (achievementPopupTimer >= 3f) 
+            if (achievementPopupTimer >= 3f) // Display popup for 3 seconds
             {
                 achievementPopupText.gameObject.SetActive(false);
                 isAchievementPopupVisible = false;
@@ -111,7 +171,7 @@ public class FarmGameManager : MonoBehaviour
     public void ButtonPress()
     {
         buttonPressCount++;
-        buttonPressTimer = 0f;
+        buttonPressTimer = 0f; // Reset the timer
 
         if (buttonPressCount >= buttonPressThreshold && !bulkButtonsUnlocked)
         {
@@ -154,8 +214,8 @@ public class FarmGameManager : MonoBehaviour
 
     private void UpdateUI()
     {
-        cowCountText.text = $"{cows}";
-        chickenCountText.text = $"{chickens}";
-        moneyText.text = $"${money}";
+        cowCountText.text = $" {cows}";
+        chickenCountText.text = $" {chickens}";
+        moneyText.text = $" ${money}";
     }
 }
