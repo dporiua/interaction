@@ -19,7 +19,7 @@ public class FarmGameManager : MonoBehaviour
     public float chickenHappiness = 200f;
 
     [Header("Daily Clock")]
-    public float dayDurationInSeconds = 60f; // Adjustable in Inspector
+    public float dayDurationInSeconds = 60f; 
     private float currentDayTime = 0f;
 
     [Header("Animal Feeding Costs")]
@@ -30,6 +30,11 @@ public class FarmGameManager : MonoBehaviour
     public GameObject bulkButtonsRow;
     public float buttonPressWindow = 5f; // Time to reach threshold
     public int buttonPressThreshold = 20;
+
+    [Header("Notification System")]
+    public GameObject notificationPrefab; // Prefab for notifications
+    public Transform notificationParent; // Parent for notifications
+    public float notificationDuration = 3f; // How long notifications stay on screen
 
     private int cows = 0;
     private int chickens = 0;
@@ -77,9 +82,20 @@ public class FarmGameManager : MonoBehaviour
 
     private void UpdateDayCountdownUI()
     {
-        // Convert remaining time to hours and minutes
         int hours = Mathf.FloorToInt((currentDayTime / dayDurationInSeconds) * 24);
-        dayCountdownText.text = $"Day Time: {hours:00}:00";
+        dayCountdownText.text = $"{hours:00}:00";
+        if (hours > 12)
+        {
+            dayCountdownText.color = Color.green; // More than 12 hours left
+        }
+        else if (hours > 6)
+        {
+            dayCountdownText.color = Color.yellow; // 6 to 12 hours left
+        }
+        else
+        {
+            dayCountdownText.color = Color.red; // Less than 6 hours left
+        }
     }
 
     private void EndDay()
@@ -92,21 +108,27 @@ public class FarmGameManager : MonoBehaviour
         }
         else
         {
-            // Not enough money: remove animals
             int remainingMoney = money;
 
-            // Calculate how many chickens can be fed
+            int initialChickens = chickens;
+            int initialCows = cows;
+
             int chickensThatCanBeFed = remainingMoney / chickenFoodCost;
             remainingMoney -= chickensThatCanBeFed * chickenFoodCost;
             chickens = Mathf.Max(0, chickens - (chickens - chickensThatCanBeFed));
 
-            // Calculate how many cows can be fed
             int cowsThatCanBeFed = remainingMoney / cowFoodCost;
             remainingMoney -= cowsThatCanBeFed * cowFoodCost;
             cows = Mathf.Max(0, cows - (cows - cowsThatCanBeFed));
 
-            // Set money to zero after feeding as much as possible
             money = 0;
+
+            // Trigger death notifications
+            if (initialChickens > chickens)
+                ShowNotification($"- {initialChickens - chickens} Chickens", Color.red);
+
+            if (initialCows > cows)
+                ShowNotification($"- {initialCows - cows} Cows", Color.red);
         }
 
         UpdateUI();
@@ -123,6 +145,7 @@ public class FarmGameManager : MonoBehaviour
             {
                 cows++;
                 cowReproductionTimer = 0f;
+                ShowNotification("+ 1 Cow", Color.green);
                 UpdateUI();
             }
         }
@@ -136,6 +159,7 @@ public class FarmGameManager : MonoBehaviour
             {
                 chickens++;
                 chickenReproductionTimer = 0f;
+                ShowNotification("+ 1 Chicken", Color.green);
                 UpdateUI();
             }
         }
@@ -191,22 +215,29 @@ public class FarmGameManager : MonoBehaviour
         achievementPopupTimer = 0f;
     }
 
-    public void BuyCow() { ExecuteBuySell(1, ref cows, -cowPrice); }
-    public void SellCow() { ExecuteBuySell(-1, ref cows, cowPrice); }
-    public void BuyChicken() { ExecuteBuySell(1, ref chickens, -chickenPrice); }
-    public void SellChicken() { ExecuteBuySell(-1, ref chickens, chickenPrice); }
+    private void ShowNotification(string message, Color color)
+    {
+        GameObject notification = Instantiate(notificationPrefab, notificationParent);
+        TMP_Text text = notification.GetComponentInChildren<TMP_Text>();
+        text.text = message;
+        text.color = color;
 
-    public void BuyCowsInBulk() { ExecuteBuySell(10, ref cows, -cowPrice * 10); }
-    public void SellCowsInBulk() { ExecuteBuySell(-10, ref cows, cowPrice * 10); }
-    public void BuyChickensInBulk() { ExecuteBuySell(10, ref chickens, -chickenPrice * 10); }
-    public void SellChickensInBulk() { ExecuteBuySell(-10, ref chickens, chickenPrice * 10); }
+        // Start fading and scrolling animation
+        Destroy(notification, notificationDuration);
+    }
 
-    private void ExecuteBuySell(int amount, ref int animalCount, int cost)
+    public void BuyCow() { ExecuteBuySell(1, ref cows, -cowPrice, "+ 1 Cow", Color.green); }
+    public void SellCow() { ExecuteBuySell(-1, ref cows, cowPrice, "- 1 Cow", Color.red); }
+    public void BuyChicken() { ExecuteBuySell(1, ref chickens, -chickenPrice, "+ 1 Chicken", Color.green); }
+    public void SellChicken() { ExecuteBuySell(-1, ref chickens, chickenPrice, "- 1 Chicken", Color.red); }
+
+    private void ExecuteBuySell(int amount, ref int animalCount, int cost, string notificationMessage, Color notificationColor)
     {
         if (animalCount + amount >= 0 && money + cost >= 0)
         {
             animalCount += amount;
             money += cost;
+            ShowNotification(notificationMessage, notificationColor);
             UpdateUI();
             ButtonPress();
         }
@@ -214,8 +245,8 @@ public class FarmGameManager : MonoBehaviour
 
     private void UpdateUI()
     {
-        cowCountText.text = $" {cows}";
-        chickenCountText.text = $" {chickens}";
-        moneyText.text = $" ${money}";
+        cowCountText.text = $"{cows}";
+        chickenCountText.text = $"{chickens}";
+        moneyText.text = $"${money}";
     }
 }
