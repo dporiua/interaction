@@ -208,6 +208,10 @@ public class FarmGameManager : MonoBehaviour
     public void SellCow() { ExecuteBuySell(-1, ref cows, cowPrice, "- 1 Cow", Color.red); }
     public void BuyChicken() { ExecuteBuySell(1, ref chickens, -chickenPrice, "+ 1 Chicken", Color.green); }
     public void SellChicken() { ExecuteBuySell(-1, ref chickens, chickenPrice, "- 1 Chicken", Color.red); }
+    public void BuyCowsInBulk() { ExecuteBuySell(10, ref cows, -cowPrice * 10, "+ 10 Cows", Color.green); }
+    public void SellCowsInBulk() { ExecuteBuySell(-10, ref cows, cowPrice * 10, "- 10 Cows", Color.red); }
+    public void BuyChickensInBulk() { ExecuteBuySell(10, ref chickens, -chickenPrice * 10, "+ 10 Chickens", Color.green); }
+    public void SellChickensInBulk() { ExecuteBuySell(-10, ref chickens, chickenPrice * 10, "- 10 Chickens", Color.red); }
 
     private void ExecuteBuySell(int amount, ref int animalCount, int cost, string notificationMessage, Color notificationColor)
     {
