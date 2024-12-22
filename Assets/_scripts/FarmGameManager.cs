@@ -2,6 +2,8 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.Networking;
 using System.Collections;
+using UnityEngine.Profiling;
+
 public class FarmGameManager : MonoBehaviour
 {
     [Header("Game Elements")] //I LOVE HEADERS SO MUCH I WILL USE THEM IN EVERY GAME NOW
@@ -103,6 +105,7 @@ public class FarmGameManager : MonoBehaviour
         money = initialMoney;
         UpdateUI();
     }
+    
     private IEnumerator SavePlayerData()
     {
         string username = StartScreenManager.PlayerUsername; 
@@ -230,16 +233,20 @@ public class FarmGameManager : MonoBehaviour
 
     private void HandleReproduction()
     {
+        
+
         if (cows > 0)
         {
+            Profiler.BeginSample("Cow reproduction");
             cowReproductionTimer += Time.deltaTime;
             if (cowReproductionTimer >= cowHappiness / cows)
-            {
+            {   
                 cows++;
                 cowReproductionTimer = 0f;
                 ShowNotification("+ 1 Cow", Color.green);
                 UpdateUI();
             }
+            Profiler.EndSample();
         }
 
         if (chickens > 0)
