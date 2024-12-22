@@ -1,9 +1,10 @@
 using UnityEngine;
 using TMPro;
-
+using UnityEngine.Networking;
+using System.Collections;
 public class FarmGameManager : MonoBehaviour
 {
-    [Header("Game Elements")]
+    [Header("Game Elements")] //I LOVE HEADERS SO MUCH I WILL USE THEM IN EVERY GAME NOW
     public TMP_Text cowCountText;
     public TMP_Text chickenCountText;
     public TMP_Text moneyText;
@@ -42,11 +43,11 @@ public class FarmGameManager : MonoBehaviour
     private bool popupTriggered = false;
 
     public TMP_Text[] textGroup1; 
-    public TMP_Text[] textGroup2; 
+    public TMP_Text[] textGroup2;
 
-    private int cows = 0;
-    private int chickens = 0;
-    private int money = 500;
+    private int cows;
+    private int chickens;
+    private int money;
 
     private int buttonPressCount = 0;
     private float buttonPressTimer = 0f;
@@ -55,20 +56,27 @@ public class FarmGameManager : MonoBehaviour
     private float cowReproductionTimer = 0f;
     private float chickenReproductionTimer = 0f;
 
-    private float achievementPopupTimer = 0f;
+    //private float achievementPopupTimer = 0f;  NOT IN USE, DO NOT TRY TO USE
     //private bool isAchievementPopupVisible = false;
 
     private float totalGameTime = 0f;
     public GameObject oldObject; 
     public GameObject newObject;
+    public int Cows => cows;
+    public int Chickens => chickens;
+    public int Money => money;
+    public string googleScriptURL;
+
 
     void Start()
     {
-        UpdateUI();
+        Debug.Log($"Initializing Game: Username={StartScreenManager.PlayerUsername}, Cows={StartScreenManager.InitialCows}, Chickens={StartScreenManager.InitialChickens}, Money={StartScreenManager.InitialMoney}");
         bulkButtonsRow.SetActive(false);
         achievementPopupText.gameObject.SetActive(false);
         popupEventObject.SetActive(false);
         currentDayTime = dayDurationInSeconds;
+        InitializeGame(StartScreenManager.InitialCows, StartScreenManager.InitialChickens, StartScreenManager.InitialMoney);
+        UpdateUI();
     }
 
     void Update()
@@ -78,8 +86,61 @@ public class FarmGameManager : MonoBehaviour
         HandleButtonPressTimer();
         //HandleAchievementPopup();
         HandlePopupEventTrigger();
+        if (Input.GetKeyDown(KeyCode.F5))
+        {
+            SaveGameOnline();
+        }
+    }
+    public void SaveGameOnline()
+    {
+        StartCoroutine(SavePlayerData());
+    }
+    //this will only get called by the external script
+    public void InitializeGame(int initialCows, int initialChickens, int initialMoney)
+    {
+        cows = initialCows;
+        chickens = initialChickens;
+        money = initialMoney;
+        UpdateUI();
+    }
+    private IEnumerator SavePlayerData()
+    {
+        string username = StartScreenManager.PlayerUsername; 
+
+        if (string.IsNullOrEmpty(username))
+        {
+            Debug.LogError("Username is empty. Cannot save game.");
+            yield break;
+        }
+
+        string url = $"{googleScriptURL}?action=save" +
+                     $"&username={username.Trim()}" +
+                     $"&cows={cows}" +
+                     $"&chickens={chickens}" +
+                     $"&money={money}";
+
+        Debug.Log($"Saving Game Data: Username={username}, Cows={cows}, Chickens={chickens}, Money={money}");
+
+        UnityWebRequest request = UnityWebRequest.Get(url);
+
+        yield return request.SendWebRequest();
+
+        if (request.result == UnityWebRequest.Result.Success)
+        {
+            Debug.Log("Game data saved successfully!");
+        }
+        else
+        {
+            Debug.LogError("Error saving game data: " + request.error);
+        }
     }
 
+    public void SetGameState(int newCows, int newChickens, int newMoney)
+    {
+        cows = newCows;
+        chickens = newChickens;
+        money = newMoney;
+    }
     private void HandleDailyClock()
     {
         if (currentDayTime > 0)
@@ -106,7 +167,7 @@ public class FarmGameManager : MonoBehaviour
 
     public void OnYesButtonPressed()
     {
-        if (money >= 500)
+        if (money >= 350)
         {
             cowHappiness -= 100;
             cowFoodCost += 2;

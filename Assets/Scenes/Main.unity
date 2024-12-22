@@ -781,6 +781,7 @@ MonoBehaviour:
   - {fileID: 738676389}
   oldObject: {fileID: 254000760}
   newObject: {fileID: 2028453266}
+  googleScriptURL: https://script.google.com/macros/s/AKfycbxvvXUc0laC_Wv-PHgmB4p9uxu7g_SrxyIWfWLGccl-x2e720gQ9mphnmKS6jlISUx1wQ/exec
 --- !u!4 &252372863
 Transform:
   m_ObjectHideFlags: 0
